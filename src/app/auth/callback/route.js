@@ -11,6 +11,7 @@ export async function GET(request) {
   if (code) {
     const cookieStore = cookies()
     console.log('Creating Supabase client with URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('Service role key present:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
     
     // Create auth client for session management
     const authClient = createServerClient(
@@ -36,9 +37,18 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
+        db: {
+          schema: 'public'
+        },
         auth: {
           autoRefreshToken: false,
-          persistSession: false
+          persistSession: false,
+          detectSessionInUrl: false
+        },
+        global: {
+          headers: {
+            'x-my-custom-header': 'service-role'
+          }
         }
       }
     )
@@ -60,29 +70,24 @@ export async function GET(request) {
         }
         console.log('Attempting to upsert user with data:', JSON.stringify(userData))
 
-        // First, let's check if the user already exists
-        const { data: existingUser, error: selectError } = await adminClient
-          .from('users')
-          .select('*')
-          .eq('email', session.user.email)
-          .single()
-        
-        console.log('Check existing user:', selectError ? `error: ${selectError.message}` : `result: ${existingUser ? 'found' : 'not found'}`)
-        
-        // Try to insert the user into the users table
-        const { data: upsertData, error: upsertError } = await adminClient
-          .from('users')
-          .upsert(userData, {
-            onConflict: 'email',
-            ignoreDuplicates: false
-          })
-          .select()
+        try {
+          // Try to insert the user into the users table directly
+          const { data: upsertData, error: upsertError } = await adminClient
+            .from('users')
+            .upsert(userData, {
+              onConflict: 'email',
+              ignoreDuplicates: false
+            })
+            .select()
 
-        console.log('Upsert user:', upsertError ? `error: ${upsertError.message}` : 'success')
-        console.log('Upsert response data:', upsertData ? JSON.stringify(upsertData) : 'no data')
-        
-        if (upsertError) {
-          console.error('Full upsert error:', JSON.stringify(upsertError))
+          console.log('Upsert user:', upsertError ? `error: ${upsertError.message}` : 'success')
+          console.log('Upsert response data:', upsertData ? JSON.stringify(upsertData) : 'no data')
+          
+          if (upsertError) {
+            console.error('Full upsert error:', JSON.stringify(upsertError))
+          }
+        } catch (error) {
+          console.error('Try-catch error:', error.message)
         }
       } else {
         console.log('No user email in session')
