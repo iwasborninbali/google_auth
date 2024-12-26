@@ -5,9 +5,12 @@ import { NextResponse } from 'next/server'
 export async function GET(request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
+  console.log('Auth callback started, code:', code ? 'present' : 'missing')
 
   if (code) {
     const cookieStore = cookies()
+    console.log('Creating Supabase client with URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -26,35 +29,57 @@ export async function GET(request) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
+    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('Exchange code for session:', sessionError ? `error: ${sessionError.message}` : 'success')
+    
+    if (!sessionError) {
       // Get the user's session
-      const { data: { session } } = await supabase.auth.getSession()
+      const { data: { session }, error: getSessionError } = await supabase.auth.getSession()
+      console.log('Get session:', getSessionError ? `error: ${getSessionError.message}` : 'success')
+      console.log('Session data:', session ? `user email: ${session.user.email}` : 'no session')
       
       if (session?.user?.email) {
-        // Try to insert the user into the users table
-        const { error: upsertError } = await supabase
+        const userData = {
+          email: session.user.email,
+          provider: 'google',
+          updated_at: new Date().toISOString()
+        }
+        console.log('Attempting to upsert user with data:', JSON.stringify(userData))
+
+        // First, let's check if the user already exists
+        const { data: existingUser, error: selectError } = await supabase
           .from('users')
-          .upsert({
-            email: session.user.email,
-            provider: 'google',
-            updated_at: new Date().toISOString()
-          }, {
+          .select('*')
+          .eq('email', session.user.email)
+          .single()
+        
+        console.log('Check existing user:', selectError ? `error: ${selectError.message}` : `result: ${existingUser ? 'found' : 'not found'}`)
+        
+        // Try to insert the user into the users table
+        const { data: upsertData, error: upsertError } = await supabase
+          .from('users')
+          .upsert(userData, {
             onConflict: 'email',
             ignoreDuplicates: false
           })
+          .select()
 
+        console.log('Upsert user:', upsertError ? `error: ${upsertError.message}` : 'success')
+        console.log('Upsert response data:', upsertData ? JSON.stringify(upsertData) : 'no data')
+        
         if (upsertError) {
-          console.error('Error storing user data:', upsertError)
-          // We still continue with the redirect even if storing fails
-          // You might want to handle this differently based on your requirements
+          console.error('Full upsert error:', JSON.stringify(upsertError))
         }
+      } else {
+        console.log('No user email in session')
       }
 
       return NextResponse.redirect(requestUrl.origin)
+    } else {
+      console.log('Session exchange failed:', sessionError)
     }
   }
 
-  // Return the user to an error page with some instructions
+  console.log('Redirecting to auth-error')
   return NextResponse.redirect(`${requestUrl.origin}/auth-error`)
 } 
