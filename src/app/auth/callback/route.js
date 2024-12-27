@@ -37,18 +37,10 @@ export async function GET(request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
       {
-        db: {
-          schema: 'public'
-        },
         auth: {
           autoRefreshToken: false,
           persistSession: false,
           detectSessionInUrl: false
-        },
-        global: {
-          headers: {
-            'x-my-custom-header': 'service-role'
-          }
         }
       }
     )
@@ -63,28 +55,18 @@ export async function GET(request) {
       console.log('Session data:', session ? `user email: ${session.user.email}` : 'no session')
       
       if (session?.user?.email) {
-        const userData = {
-          email: session.user.email,
-          provider: 'google',
-          updated_at: new Date().toISOString()
-        }
-        console.log('Attempting to upsert user with data:', JSON.stringify(userData))
-
         try {
-          // Try to insert the user into the users table directly
-          const { data: upsertData, error: upsertError } = await adminClient
-            .from('users')
-            .upsert(userData, {
-              onConflict: 'email',
-              ignoreDuplicates: false
-            })
-            .select()
+          // Call the RPC function to insert user
+          const { data: rpcData, error: rpcError } = await adminClient.rpc('insert_user', {
+            p_email: session.user.email,
+            p_provider: 'google'
+          })
 
-          console.log('Upsert user:', upsertError ? `error: ${upsertError.message}` : 'success')
-          console.log('Upsert response data:', upsertData ? JSON.stringify(upsertData) : 'no data')
+          console.log('RPC call result:', rpcError ? `error: ${rpcError.message}` : 'success')
+          console.log('RPC response data:', rpcData ? JSON.stringify(rpcData) : 'no data')
           
-          if (upsertError) {
-            console.error('Full upsert error:', JSON.stringify(upsertError))
+          if (rpcError) {
+            console.error('Full RPC error:', JSON.stringify(rpcError))
           }
         } catch (error) {
           console.error('Try-catch error:', error.message)
