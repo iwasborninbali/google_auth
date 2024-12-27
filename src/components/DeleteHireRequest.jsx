@@ -26,22 +26,39 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
   );
 
   const handleDelete = async () => {
+    if (!request?.id) {
+      console.error('No request ID provided');
+      toast.error('Ошибка при удалении заявки: отсутствует ID');
+      return;
+    }
+
     try {
       setIsDeleting(true);
-      console.log('Deleting request:', request.id);
+      console.log('Starting deletion for request:', request.id);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('hire')
         .update({ status: 'deleted' })
-        .eq('id', request.id);
+        .eq('id', request.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      console.log('Update result:', { data, error });
+
+      if (error) {
+        throw error;
+      }
       
       toast.success('Заявка успешно удалена');
       setShowDeleteDialog(false);
-      if (onRequestDeleted) {
-        onRequestDeleted();
-      }
+      
+      // Добавляем небольшую задержку перед редиректом
+      setTimeout(() => {
+        if (onRequestDeleted) {
+          onRequestDeleted();
+        }
+      }, 500);
+      
     } catch (error) {
       console.error('Error deleting request:', error);
       toast.error('Ошибка при удалении заявки');
@@ -50,7 +67,7 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
     }
   };
 
-  if (request.status === 'draft') return null;
+  if (!request || request.status === 'draft') return null;
 
   return (
     <>
@@ -64,20 +81,25 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
       </Button>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[90vw] max-w-[500px] p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle>Удаление заявки</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-xl">Удаление заявки</AlertDialogTitle>
+            <AlertDialogDescription className="text-base mt-2">
               Вы уверены, что хотите удалить заявку для компании "{request.company_name}"?
               Это действие нельзя будет отменить.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+          <AlertDialogFooter className="mt-6 gap-3">
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              className="mt-0"
+            >
+              Отмена
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-red-500 hover:bg-red-600 text-white mt-0"
             >
               {isDeleting ? 'Удаление...' : 'Удалить'}
             </AlertDialogAction>

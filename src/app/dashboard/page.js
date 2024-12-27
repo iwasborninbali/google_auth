@@ -31,6 +31,7 @@ export default function DashboardPage() {
           .from('hire')
           .select('*')
           .eq('user_id', dbUser.id)
+          .neq('status', 'deleted')
           .order('created_at', { ascending: false })
 
         if (error) {

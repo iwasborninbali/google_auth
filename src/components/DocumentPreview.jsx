@@ -17,7 +17,7 @@ export default function DocumentPreview({ file, fileUrl }) {
         <FileIcon className="w-5 h-5 mr-2 text-gray-500" />
         <span className="flex-1 truncate">{file.name}</span>
         <div className="flex gap-2">
-          {isImage && (
+          {(isImage || isPDF) && (
             <Button
               variant="ghost"
               size="sm"
@@ -36,9 +36,9 @@ export default function DocumentPreview({ file, fileUrl }) {
         </div>
       </div>
 
-      {isImage && (
-        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-          <DialogContent className="max-w-3xl">
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          {isImage ? (
             <div className="relative w-full h-[600px]">
               <Image
                 src={fileUrl}
@@ -47,9 +47,19 @@ export default function DocumentPreview({ file, fileUrl }) {
                 style={{ objectFit: 'contain' }}
               />
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          ) : isPDF && (
+            <div className="w-full h-[600px]">
+              <iframe
+                src={fileUrl}
+                title={file.name}
+                width="100%"
+                height="100%"
+                style={{ border: 'none' }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 } 

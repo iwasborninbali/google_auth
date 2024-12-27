@@ -180,7 +180,7 @@ export default function HireRequestPage({ params }) {
                   <DocumentPreview
                     key={file.name}
                     file={file}
-                    fileUrl={getFileUrl(`${request.user_id}/${request.id}/${file.name}`)}
+                    fileUrl={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/hire/${request.user_id}/${request.id}/${file.name}`}
                   />
                 ))}
               </div>
