@@ -75,7 +75,7 @@ export async function GET(request) {
         console.log('No user email in session')
       }
 
-      return NextResponse.redirect(requestUrl.origin)
+      return NextResponse.redirect(`${requestUrl.origin}/profile`)
     } else {
       console.log('Session exchange failed:', sessionError)
     }
