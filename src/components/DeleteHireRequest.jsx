@@ -14,6 +14,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogOverlay,
 } from "@/components/ui/alert-dialog";
 
 export default function DeleteHireRequest({ request, onRequestDeleted }) {
@@ -81,9 +82,9 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
       </Button>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[90vw] max-w-[500px] p-6">
+        <AlertDialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[500px] p-6 bg-white rounded-lg shadow-lg z-50">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Удаление заявки</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-semibold">Удаление заявки</AlertDialogTitle>
             <AlertDialogDescription className="text-base mt-2">
               Вы уверены, что хотите удалить заявку для компании "{request.company_name}"?
               Это действие нельзя будет отменить.
@@ -92,7 +93,7 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
           <AlertDialogFooter className="mt-6 gap-3">
             <AlertDialogCancel 
               disabled={isDeleting}
-              className="mt-0"
+              className="mt-0 bg-gray-100 hover:bg-gray-200"
             >
               Отмена
             </AlertDialogCancel>
@@ -105,6 +106,7 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
+        <div className="fixed inset-0 bg-black/50 z-40" aria-hidden="true" />
       </AlertDialog>
     </>
   );
