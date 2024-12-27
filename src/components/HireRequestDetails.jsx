@@ -32,9 +32,8 @@ const workBookTranslations = {
   'none': 'Первое трудоустройство'
 };
 
-export default function HireRequestDetails({ hireId, isOpen, onClose }) {
+export default function HireRequestDetails({ request, isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
-  const [request, setRequest] = useState(null);
   const [files, setFiles] = useState([]);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -42,35 +41,22 @@ export default function HireRequestDetails({ hireId, isOpen, onClose }) {
   );
 
   useEffect(() => {
-    if (hireId && isOpen) {
-      loadRequestDetails();
+    if (request?.id && isOpen) {
+      loadFiles();
     }
-  }, [hireId, isOpen]);
+  }, [request, isOpen]);
 
-  const loadRequestDetails = async () => {
+  const loadFiles = async () => {
     try {
       setLoading(true);
-      
-      // Получаем детали заявки
-      const { data: request, error } = await supabase
+      const { data: files, error } = await supabase.storage
         .from('hire')
-        .select('*')
-        .eq('id', hireId)
-        .single();
+        .list(`${request.user_id}/${request.id}`);
 
       if (error) throw error;
-      setRequest(request);
-
-      // Получаем список файлов из Storage
-      const { data: files, error: filesError } = await supabase.storage
-        .from('hire')
-        .list(`${request.user_id}/${hireId}`);
-
-      if (filesError) throw filesError;
-      setFiles(files);
-
+      setFiles(files || []);
     } catch (error) {
-      console.error('Error loading request details:', error);
+      console.error('Error loading files:', error);
     } finally {
       setLoading(false);
     }
@@ -138,24 +124,34 @@ export default function HireRequestDetails({ hireId, isOpen, onClose }) {
           {/* Документы */}
           <div>
             <h3 className="font-semibold mb-4">Документы</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {files.map((file) => (
-                <div key={file.name} className="flex items-center p-3 border rounded-lg">
-                  <FileIcon className="w-5 h-5 mr-2 text-gray-500" />
-                  <span className="flex-1 truncate">{file.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={async () => {
-                      const url = await getFileUrl(`${request.user_id}/${hireId}/${file.name}`);
-                      window.open(url, '_blank');
-                    }}
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">Загрузка документов...</p>
+              </div>
+            ) : files.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-gray-500">Документы не найдены</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {files.map((file) => (
+                  <div key={file.name} className="flex items-center p-3 border rounded-lg">
+                    <FileIcon className="w-5 h-5 mr-2 text-gray-500" />
+                    <span className="flex-1 truncate">{file.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        const url = await getFileUrl(`${request.user_id}/${request.id}/${file.name}`);
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

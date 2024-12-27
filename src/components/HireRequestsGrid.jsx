@@ -66,6 +66,7 @@ export default function HireRequestsGrid({ requests = [] }) {
   };
 
   const handleDeleteClick = async (e, request) => {
+    e.preventDefault(); // Предотвращаем всплытие события клика
     e.stopPropagation(); // Предотвращаем всплытие события клика
     setRequestToDelete(request);
   };
@@ -124,14 +125,16 @@ export default function HireRequestsGrid({ requests = [] }) {
                   </span>
                 </CardDescription>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-red-500 hover:text-red-700 hover:bg-red-100"
-                onClick={(e) => handleDeleteClick(e, request)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {request.status !== 'draft' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                  onClick={(e) => handleDeleteClick(e, request)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -163,7 +166,7 @@ export default function HireRequestsGrid({ requests = [] }) {
       </div>
 
       <HireRequestDetails
-        hireId={selectedRequest?.id}
+        request={selectedRequest}
         isOpen={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
       />
