@@ -79,7 +79,7 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">Заявки на трудоустройство</h1>
           <Button
-            onClick={() => router.push('/hire/new')}
+            onClick={() => router.push('/hire')}
             className="flex items-center gap-2"
           >
             <PlusCircle className="w-5 h-5" />
