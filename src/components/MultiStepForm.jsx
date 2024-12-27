@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ProgressBar } from './ProgressBar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import DocumentUpload from './DocumentUpload'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 const INITIAL_DATA = {
   companyName: "",
@@ -24,6 +27,19 @@ const INITIAL_DATA = {
 export default function MultiStepForm() {
   const [data, setData] = useState(INITIAL_DATA)
   const [currentStep, setCurrentStep] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const supabase = createClientComponentClient()
+  const router = useRouter()
+
+  // Get current user session
+  const [user, setUser] = useState(null)
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+  }, [supabase.auth])
 
   function updateFields(fields) {
     setData(prev => ({ ...prev, ...fields }))
@@ -74,15 +90,39 @@ export default function MultiStepForm() {
     })
   }
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault()
     if (currentStep === steps.length - 1) {
-      console.log(data)
-      alert('Форма отправлена!')
-      // Here you would typically send the data to your server
+      try {
+        setLoading(true)
+        const { error } = await supabase
+          .from('hire')
+          .insert({
+            user_id: user?.id,
+            company_name: data.companyName,
+            employee_name: data.employeeName,
+            position: data.position,
+            employment_type: data.employmentType,
+            work_book_type: data.workBook
+          })
+
+        if (error) throw error
+
+        toast.success('Заявка успешно отправлена')
+        router.push('/dashboard') // или куда вам нужно после успешной отправки
+      } catch (error) {
+        console.error('Error:', error)
+        toast.error('Ошибка при отправке формы')
+      } finally {
+        setLoading(false)
+      }
     } else {
       next()
     }
+  }
+
+  if (!user) {
+    return <div>Loading...</div>
   }
 
   return (
@@ -107,8 +147,9 @@ export default function MultiStepForm() {
             <Button 
               type="submit" 
               className={`bg-platform-primary hover:bg-platform-primary/90 text-white ${currentStep === 0 ? "ml-auto" : ""}`}
+              disabled={loading}
             >
-              {currentStep === steps.length - 1 ? "Отправить" : "Далее"}
+              {currentStep === steps.length - 1 ? (loading ? "Отправка..." : "Отправить") : "Далее"}
             </Button>
           </div>
         </form>
