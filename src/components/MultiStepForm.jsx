@@ -82,17 +82,11 @@ export default function MultiStepForm() {
     return hire
   }
 
-  // Обновляем запись с URL файлов
-  const updateHireRecord = async (fileUrls) => {
+  // Обновляем запись с URL файлов - больше не нужна
+  const updateHireRecord = async () => {
     const { error } = await supabase
       .from('hire')
-      .update({
-        passport_url: fileUrls.passport,
-        snils_url: fileUrls.snils,
-        inn_url: fileUrls.inn,
-        bank_details_url: fileUrls.bankDetails,
-        work_book_url: fileUrls.workBookFile
-      })
+      .update({ status: 'pending' })
       .eq('id', hireId)
 
     if (error) throw error
@@ -158,7 +152,7 @@ export default function MultiStepForm() {
     } else if (currentStep === steps.length - 1) {
       try {
         setLoading(true)
-        await updateHireRecord(data)
+        await updateHireRecord() // Теперь просто обновляем статус
         toast.success('Заявка успешно отправлена')
         router.push('/dashboard')
       } catch (error) {
