@@ -4,34 +4,44 @@ import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { createBrowserClient } from '@supabase/ssr'
 import { toast } from 'sonner'
+import { Check, Upload, X } from 'lucide-react'
+import { Button } from "@/components/ui/button"
 
 // Функция для транслитерации русского текста
 function transliterate(text) {
+  if (!text) return '';
+  
   const ru = {
     'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
     'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
     'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
-    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '',
-    'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
-    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
-    'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
-    'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
-    'Ф': 'F', 'Х': 'H', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '',
-    'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    ' ': '_', '-': '_', '.': '_'
   };
-  return text.split('').map(char => ru[char] || char).join('');
+
+  // Приводим текст к нижнему регистру перед обработкой
+  return text.toLowerCase()
+    .split('')
+    .map(char => ru[char] || char)
+    .join('');
 }
 
 // Функция для очистки строки (убирает пробелы и спецсимволы)
 function sanitizePath(str) {
-  return transliterate(str)
-    .replace(/[^a-zA-Z0-9]/g, '_') // Заменяем все кроме букв и цифр на _
-    .replace(/_+/g, '_')           // Убираем множественные _
-    .replace(/^_|_$/g, '');        // Убираем _ в начале и конце
+  if (!str) return '';
+  
+  const transliterated = transliterate(str);
+  return transliterated
+    .replace(/[^a-z0-9_]/g, '_') // оставляем только латинские буквы, цифры и _
+    .replace(/_+/g, '_') // убираем множественные _
+    .replace(/^_|_$/g, '') // убираем _ в начале и конце
+    || 'file'; // если строка пустая, используем 'file'
 }
 
 export default function DocumentUpload({ documents, onUpload, formData, hireId }) {
   const [uploading, setUploading] = useState({})
+  const [uploadedFiles, setUploadedFiles] = useState({})
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -47,20 +57,26 @@ export default function DocumentUpload({ documents, onUpload, formData, hireId }
 
       // Формируем путь для файла
       const timestamp = new Date().getTime()
-      const fileExtension = file.name.split('.').pop()
+      const fileExtension = file.name.split('.').pop().toLowerCase()
       const docTitle = sanitizePath(documents.find(d => d.type === docType).title)
       const fileName = `${docTitle}_${timestamp}.${fileExtension}`
       
-      // Очищаем все части пути
-      const filePath = [
+      // Очищаем и проверяем все части пути
+      const pathParts = [
         user.id,
         hireId,
-        sanitizePath(formData.companyName),
-        sanitizePath(formData.employeeName),
+        sanitizePath(formData.companyName || 'company'),
+        sanitizePath(formData.employeeName || 'employee'),
         docTitle,
         fileName
-      ].join('/')
+      ];
 
+      // Проверяем, что все части пути валидны
+      if (pathParts.some(part => !part)) {
+        throw new Error('Некорректный путь файла')
+      }
+
+      const filePath = pathParts.join('/')
       console.log('Uploading file to path:', filePath)
 
       // Загружаем файл
@@ -78,6 +94,16 @@ export default function DocumentUpload({ documents, onUpload, formData, hireId }
         .from('hire')
         .getPublicUrl(filePath)
 
+      // Сохраняем информацию о загруженном файле
+      setUploadedFiles(prev => ({
+        ...prev,
+        [docType]: {
+          name: file.name,
+          url: publicUrl,
+          timestamp: new Date().toLocaleString()
+        }
+      }))
+
       onUpload(docType, publicUrl)
       toast.success(`${documents.find(d => d.type === docType).title} успешно загружен`)
     } catch (error) {
@@ -86,6 +112,15 @@ export default function DocumentUpload({ documents, onUpload, formData, hireId }
     } finally {
       setUploading(prev => ({ ...prev, [docType]: false }))
     }
+  }
+
+  const removeFile = (docType) => {
+    setUploadedFiles(prev => {
+      const newFiles = { ...prev }
+      delete newFiles[docType]
+      return newFiles
+    })
+    onUpload(docType, null)
   }
 
   const onDrop = useCallback((acceptedFiles, docType) => {
@@ -115,28 +150,61 @@ export default function DocumentUpload({ documents, onUpload, formData, hireId }
           }
         })
 
+        const uploadedFile = uploadedFiles[type]
+
         return (
           <div key={type} className="p-4 border rounded-lg">
             <h3 className="font-semibold mb-2">{title}</h3>
             <p className="text-sm text-gray-500 mb-4">{description}</p>
             
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-                ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-              `}
-            >
-              <input {...getInputProps()} />
-              {uploading[type] ? (
-                <p className="text-gray-500">Загрузка...</p>
-              ) : isDragActive ? (
-                <p className="text-blue-500">Перетащите файл сюда</p>
-              ) : (
-                <p className="text-gray-500">
-                  Перетащите файл сюда или кликните для выбора
-                </p>
-              )}
-            </div>
+            {uploadedFile ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-5 h-5 text-green-500" />
+                    <div>
+                      <p className="text-sm font-medium">{uploadedFile.name}</p>
+                      <p className="text-xs text-gray-500">Загружено: {uploadedFile.timestamp}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(type)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
+                  ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+                `}
+              >
+                <input {...getInputProps()} />
+                {uploading[type] ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <Upload className="w-5 h-5 animate-bounce" />
+                    <p className="text-gray-500">Загрузка...</p>
+                  </div>
+                ) : isDragActive ? (
+                  <p className="text-blue-500">Перетащите файл сюда</p>
+                ) : (
+                  <div className="space-y-2">
+                    <Upload className="w-8 h-8 mx-auto text-gray-400" />
+                    <p className="text-gray-500">
+                      Перетащите файл сюда или кликните для выбора
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Поддерживаемые форматы: PDF, PNG, JPG, JPEG
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )
       })}
