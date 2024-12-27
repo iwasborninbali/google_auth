@@ -73,7 +73,7 @@ export default function MultiStepForm() {
         position: data.position,
         employment_type: data.employmentType,
         work_book_type: data.workBook,
-        status: 'pending'
+        status: 'draft'
       })
       .select()
       .single()
@@ -82,11 +82,23 @@ export default function MultiStepForm() {
     return hire
   }
 
-  // Обновляем запись с URL файлов - больше не нужна
+  // Проверяем наличие всех необходимых файлов
+  const areAllFilesUploaded = () => {
+    const requiredFiles = ['passport', 'snils', 'inn', 'bankDetails']
+    if (data.workBook !== 'none') {
+      requiredFiles.push('workBookFile')
+    }
+    
+    return requiredFiles.every(fileType => data[fileType] !== null)
+  }
+
+  // Обновляем запись с URL файлов
   const updateHireRecord = async () => {
     const { error } = await supabase
       .from('hire')
-      .update({ status: 'pending' })
+      .update({ 
+        status: areAllFilesUploaded() ? 'pending' : 'draft'
+      })
       .eq('id', hireId)
 
     if (error) throw error
@@ -108,14 +120,15 @@ export default function MultiStepForm() {
         })
       }}
       documents={[
-        { type: 'passport', title: 'Паспорт', description: 'Загрузите скан или фото паспорта' },
-        { type: 'snils', title: 'СНИЛС', description: 'Загрузите скан или фото СНИЛС' },
-        { type: 'inn', title: 'ИНН', description: 'Загрузите скан или фото ИНН' },
-        { type: 'bankDetails', title: 'Банковские реквизиты', description: 'Загрузите файл с банковскими реквизитами' },
+        { type: 'passport', title: 'Паспорт', description: 'Загрузите скан или фото паспорта', required: true },
+        { type: 'snils', title: 'СНИЛС', description: 'Загрузите скан или фото СНИЛС', required: true },
+        { type: 'inn', title: 'ИНН', description: 'Загрузите скан или фото ИНН', required: true },
+        { type: 'bankDetails', title: 'Банковские реквизиты', description: 'Загрузите файл с банковскими реквизитами', required: true },
         ...(data.workBook !== 'none' ? [{
           type: 'workBookFile',
           title: 'Трудовая книжка',
-          description: `Загрузите скан ${data.workBook === 'paper' ? 'бумажной' : 'электронной'} трудовой книжки`
+          description: `Загрузите скан ${data.workBook === 'paper' ? 'бумажной' : 'электронной'} трудовой книжки`,
+          required: true
         }] : [])
       ]}
     />
@@ -150,9 +163,14 @@ export default function MultiStepForm() {
         setLoading(false)
       }
     } else if (currentStep === steps.length - 1) {
+      if (!areAllFilesUploaded()) {
+        toast.error('Пожалуйста, загрузите все необходимые документы')
+        return
+      }
+
       try {
         setLoading(true)
-        await updateHireRecord() // Теперь просто обновляем статус
+        await updateHireRecord()
         toast.success('Заявка успешно отправлена')
         router.push('/dashboard')
       } catch (error) {
@@ -192,9 +210,11 @@ export default function MultiStepForm() {
             <Button 
               type="submit" 
               className={`bg-platform-primary hover:bg-platform-primary/90 text-white ${currentStep === 0 ? "ml-auto" : ""}`}
-              disabled={loading}
+              disabled={loading || (currentStep === steps.length - 1 && !areAllFilesUploaded())}
             >
-              {currentStep === steps.length - 1 ? (loading ? "Отправка..." : "Отправить") : "Далее"}
+              {currentStep === steps.length - 1 ? (
+                loading ? "Отправка..." : (areAllFilesUploaded() ? "Отправить" : "Загрузите все документы")
+              ) : "Далее"}
             </Button>
           </div>
         </form>
