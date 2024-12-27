@@ -41,6 +41,13 @@ function sanitizePath(str) {
 export default function DocumentPreview({ file, request }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
+
+  // Логи: смотрим, что за file и request приходят
+  console.group(`DocumentPreview: file "${file?.name}"`);
+  console.log('file object:', file);
+  console.log('request:', request);
+  console.groupEnd();
+
   const isImage = file.name.match(/\.(jpg|jpeg|png|gif)$/i);
   const isPDF = file.name.toLowerCase().endsWith('.pdf');
 
@@ -58,6 +65,7 @@ export default function DocumentPreview({ file, request }) {
     if (file.name.includes('bankDetails')) docType = 'bankDetails';
     if (file.name.includes('workBook')) docType = 'workBookFile';
 
+    // Формируем путь и логируем его
     const pathParts = [
       request.user_id,
       request.id,
@@ -68,31 +76,55 @@ export default function DocumentPreview({ file, request }) {
     ];
 
     const path = pathParts.join('/');
-    console.log('Getting file URL for path:', path);
+    console.log('[DocumentPreview] Getting public URL for path:', path);
+    console.log('[DocumentPreview] Path parts:', pathParts);
 
-    const { data } = supabase.storage
+    const { data, error } = supabase.storage
       .from('hire')
       .getPublicUrl(path);
+
+    if (error) {
+      console.error('[DocumentPreview] Error getting public URL:', error);
+      return null;
+    }
+
+    console.log('[DocumentPreview] Public URL data:', data);
     return data.publicUrl;
   };
 
   const handlePreviewClick = async () => {
+    console.log('[DocumentPreview] handlePreviewClick triggered');
     if (!fileUrl) {
+      console.log('[DocumentPreview] fileUrl is null, fetching URL...');
       const url = await getFileUrl();
+      console.log('[DocumentPreview] Fetched URL:', url);
       setFileUrl(url);
+    } else {
+      console.log('[DocumentPreview] fileUrl already set:', fileUrl);
     }
     setIsPreviewOpen(true);
   };
 
   const handleOpenClick = async () => {
+    console.log('[DocumentPreview] handleOpenClick triggered');
     if (!fileUrl) {
+      console.log('[DocumentPreview] fileUrl is null, fetching URL...');
       const url = await getFileUrl();
+      console.log('[DocumentPreview] Fetched URL:', url);
       setFileUrl(url);
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        console.error('[DocumentPreview] Failed to get file URL');
+      }
+    } else {
+      console.log('[DocumentPreview] Using cached fileUrl:', fileUrl);
+      window.open(fileUrl, '_blank');
     }
-    window.open(fileUrl, '_blank');
   };
 
   const handleClose = () => {
+    console.log('[DocumentPreview] Closing preview');
     setIsPreviewOpen(false);
   };
 

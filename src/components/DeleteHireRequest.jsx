@@ -15,32 +15,51 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
-  if (!request || request.status === 'draft') return null;
+  console.log('[DeleteHireRequest] Rendered with request:', request);
+
+  if (!request || request.status === 'draft') {
+    console.log('[DeleteHireRequest] No request or status is draft. Returning null.');
+    return null;
+  }
 
   const handleDelete = async () => {
+    console.log('[DeleteHireRequest] handleDelete called');
+    console.log('[DeleteHireRequest] Deleting request with id:', request.id);
+
     try {
       setIsDeleting(true);
+      console.log('[DeleteHireRequest] Starting delete operation...');
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('hire')
         .update({
           status: 'deleted',
           deleted_at: new Date().toISOString()
         })
-        .eq('id', request.id);
+        .eq('id', request.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[DeleteHireRequest] Error updating request:', error);
+        toast.error('Ошибка при архивации заявки');
+        return;
+      }
 
+      console.log('[DeleteHireRequest] Update result:', data);
       toast.success('Заявка перемещена в архив');
       setConfirmDelete(false);
+
       if (onRequestDeleted) {
+        console.log('[DeleteHireRequest] Calling onRequestDeleted callback...');
         onRequestDeleted();
       }
-    } catch (error) {
-      console.error('Error archiving request:', error);
+    } catch (e) {
+      console.error('[DeleteHireRequest] Exception during delete:', e);
       toast.error('Ошибка при архивации заявки');
     } finally {
       setIsDeleting(false);
+      console.log('[DeleteHireRequest] Delete operation completed');
     }
   };
 
@@ -51,28 +70,31 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
           variant="ghost"
           size="icon"
           className="text-red-500 hover:text-red-700 hover:bg-red-100"
-          onClick={() => setConfirmDelete(true)}
+          onClick={() => {
+            console.log('[DeleteHireRequest] Confirm delete toggled ON');
+            setConfirmDelete(true);
+          }}
         >
           <Trash2 className="h-5 w-5" />
         </Button>
       )}
 
-      {confirmDelete && (
+      {confirmDelete && !isDeleting && (
         <div className="absolute right-0 top-full mt-2 flex items-center gap-2 bg-white rounded-lg shadow-lg p-2 z-50">
           <Button
             variant="destructive"
             size="sm"
             onClick={handleDelete}
-            disabled={isDeleting}
-            className="text-sm"
           >
-            {isDeleting ? 'Удаление...' : 'Удалить?'}
+            Удалить?
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setConfirmDelete(false)}
-            className="text-sm"
+            onClick={() => {
+              console.log('[DeleteHireRequest] Confirm delete toggled OFF');
+              setConfirmDelete(false);
+            }}
           >
             Отмена
           </Button>
