@@ -13,32 +13,51 @@ const publicRoutes = [
 ]
 
 export async function middleware(req: NextRequest) {
+  // Создаем response сразу
   const res = NextResponse.next()
+  
+  // Инициализируем Supabase клиент
   const supabase = createMiddlewareClient({ req, res })
 
-  // Проверяем, является ли текущий путь публичным
-  const isPublicPath = publicRoutes.some(route => 
-    req.nextUrl.pathname.startsWith(route)
-  )
+  try {
+    // Проверяем корневой путь
+    if (req.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
 
-  if (isPublicPath) {
+    // Проверяем, является ли текущий путь публичным
+    const isPublicPath = publicRoutes.some(route => 
+      req.nextUrl.pathname.startsWith(route)
+    )
+
+    if (isPublicPath) {
+      return res
+    }
+
+    // Получаем сессию
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    // Если пользователь на странице логина и уже авторизован
+    if (req.nextUrl.pathname === '/login' && session) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
+    // Если нет сессии и путь не публичный, редиректим на логин
+    if (!session) {
+      const redirectUrl = new URL('/login', req.url)
+      // Сохраняем URL, с которого пришли, чтобы вернуться после логина
+      redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
     return res
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // В случае ошибки редиректим на страницу логина
+    return NextResponse.redirect(new URL('/login', req.url))
   }
-
-  // Получаем сессию
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // Если нет сессии, редиректим на логин
-  if (!session) {
-    const redirectUrl = new URL('/login', req.url)
-    // Сохраняем URL, с которого пришли, чтобы вернуться после логина
-    redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  return res
 }
 
 // Указываем, для каких путей применять middleware
