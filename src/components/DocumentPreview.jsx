@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileIcon, ExternalLink, Eye } from 'lucide-react';
+import { FileIcon, ExternalLink, Eye, X } from 'lucide-react';
 import Image from 'next/image';
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -42,6 +42,10 @@ export default function DocumentPreview({ file, request }) {
     window.open(fileUrl, '_blank');
   };
 
+  const handleClose = () => {
+    setIsPreviewOpen(false);
+  };
+
   return (
     <>
       <div className="flex items-center p-3 border rounded-lg">
@@ -67,15 +71,17 @@ export default function DocumentPreview({ file, request }) {
         </div>
       </div>
 
-      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+      <Dialog open={isPreviewOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-3xl">
-          <div className="flex justify-end mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <DialogTitle>{file.name}</DialogTitle>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsPreviewOpen(false)}
+              onClick={handleClose}
+              className="h-8 w-8 p-0"
             >
-              Закрыть
+              <X className="h-4 w-4" />
             </Button>
           </div>
           {fileUrl && (
