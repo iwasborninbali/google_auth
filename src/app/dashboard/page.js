@@ -47,6 +47,7 @@ export default function DashboardPage() {
       const { data: requests, error } = await supabase
         .from('hire')
         .select('*')
+        .neq('status', 'deleted')
         .order('created_at', { ascending: false })
 
       if (error) throw error
