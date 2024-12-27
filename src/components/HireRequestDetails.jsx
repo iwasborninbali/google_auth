@@ -2,9 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileIcon, ExternalLink } from 'lucide-react';
+import { FileIcon, ExternalLink, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusTranslations = {
   pending: 'На рассмотрении',
@@ -32,19 +42,22 @@ const workBookTranslations = {
   'none': 'Первое трудоустройство'
 };
 
-export default function HireRequestDetails({ request, isOpen, onClose }) {
+export default function HireRequestDetails({ request, showDeleteButton = false, onRequestDeleted }) {
   const [loading, setLoading] = useState(true);
   const [files, setFiles] = useState([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
   useEffect(() => {
-    if (request?.id && isOpen) {
+    if (request?.id) {
       loadFiles();
     }
-  }, [request, isOpen]);
+  }, [request]);
 
   const loadFiles = async () => {
     try {
@@ -69,26 +82,57 @@ export default function HireRequestDetails({ request, isOpen, onClose }) {
     return data.publicUrl;
   };
 
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('hire')
+        .update({ status: 'deleted' })
+        .eq('id', request.id);
+
+      if (error) throw error;
+      
+      toast.success('Заявка успешно удалена');
+      setShowDeleteDialog(false);
+      if (onRequestDeleted) {
+        onRequestDeleted();
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error('Ошибка при удалении заявки');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (!request) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center justify-between">
-            <span>Заявка на трудоустройство</span>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm ${statusColors[request.status]}`}>
+    <>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Заявка на трудоустройство</h1>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm mt-2 ${statusColors[request.status]}`}>
               {statusTranslations[request.status]}
             </span>
-          </DialogTitle>
-          <DialogDescription>
-            Подробная информация о заявке на трудоустройство и загруженных документах
-          </DialogDescription>
-        </DialogHeader>
+          </div>
+          {showDeleteButton && request.status !== 'draft' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-red-500 hover:text-red-700 hover:bg-red-100"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
 
-        <div className="mt-6 space-y-6">
+        <div className="space-y-6">
           {/* Основная информация */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-semibold mb-2">Компания</h3>
               <p>{request.company_name}</p>
@@ -154,7 +198,29 @@ export default function HireRequestDetails({ request, isOpen, onClose }) {
             )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удаление заявки</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите удалить заявку для компании "{request.company_name}"?
+              Это действие нельзя будет отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {isDeleting ? 'Удаление...' : 'Удалить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 } 
