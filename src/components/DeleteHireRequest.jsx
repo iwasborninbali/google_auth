@@ -33,8 +33,7 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
       const { data, error } = await supabase
         .from('hire')
         .update({
-          status: 'deleted',
-          deleted_at: new Date().toISOString()
+          status: 'deleted'
         })
         .eq('id', request.id)
         .select()

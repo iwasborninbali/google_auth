@@ -17,7 +17,6 @@ export default function DashboardPage() {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Получаем пользователя из таблицы users
         const { data: dbUser } = await supabase
           .from('users')
           .select('*')
@@ -26,7 +25,6 @@ export default function DashboardPage() {
         
         setUser(dbUser || user)
         
-        // Получаем все заявки пользователя
         const { data: requests, error } = await supabase
           .from('hire')
           .select('*')
@@ -48,7 +46,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-lg">Загрузка...</div>
       </div>
     )
@@ -56,16 +54,32 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Пожалуйста, войдите в систему</div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-lg text-center px-4">Пожалуйста, войдите в систему</div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Мои заявки на трудоустройство</h1>
-      <HireRequestsGrid requests={hireRequests} />
+    <div className="min-h-screen bg-background">
+      <header className="bg-secondary text-white py-4">
+        <div className="container">
+          <a href="/" className="logo">PLATFORM AI</a>
+        </div>
+      </header>
+
+      <main className="container py-6 sm:py-8 px-4">
+        <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Мои заявки на трудоустройство</h1>
+        <div className="grid-layout">
+          <HireRequestsGrid requests={hireRequests} />
+        </div>
+      </main>
+
+      <footer className="bg-secondary text-white py-4 mt-auto">
+        <div className="container text-center">
+          <p className="text-sm">© 2023 PLATFORM AI. Все права защищены.</p>
+        </div>
+      </footer>
     </div>
   )
 } 

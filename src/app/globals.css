@@ -119,9 +119,86 @@
   footer nav a {
     @apply text-white mx-2 font-medium hover:underline;
   }
+
+  /* Container responsive padding */
+  .container {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Form controls responsive sizing */
+  .form-control {
+    @apply w-full max-w-md mx-auto;
+  }
+
+  /* Card responsive padding */
+  .card {
+    @apply p-4 sm:p-6 md:p-8;
+  }
+
+  /* Grid layout for dashboard */
+  .grid-layout {
+    @apply grid gap-4 sm:gap-6 md:gap-8;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
 }
 
+/* Mobile-first responsive styles */
 @media (max-width: 768px) {
   h1 { @apply text-3xl; }
   h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+
+  .logo {
+    @apply text-lg ml-2;
+  }
+
+  /* Improved touch targets */
+  button, 
+  .btn-primary,
+  .btn-accent,
+  a {
+    @apply min-h-[44px] px-4;
+  }
+
+  /* Stack items vertically on mobile */
+  .flex-col-mobile {
+    @apply flex-col;
+  }
+
+  /* Adjust spacing for mobile */
+  .container {
+    @apply py-4;
+  }
+
+  /* Full width forms on mobile */
+  .form-control {
+    @apply max-w-full;
+  }
+
+  /* Improved mobile navigation */
+  header nav {
+    @apply flex-wrap justify-center gap-2;
+  }
+
+  /* Adjust footer for mobile */
+  footer {
+    @apply text-sm;
+  }
+}
+
+/* Improved touch targets for mobile */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .btn-primary,
+  .btn-accent,
+  a {
+    @apply min-h-[44px] px-4;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .logo {
+    filter: invert();
+  }
 }

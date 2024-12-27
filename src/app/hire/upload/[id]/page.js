@@ -19,14 +19,12 @@ export default function UploadDocumentsPage({ params }) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Получаем текущего пользователя
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           router.push('/login');
           return;
         }
 
-        // Получаем пользователя из таблицы users
         const { data: dbUser } = await supabase
           .from('users')
           .select('*')
@@ -35,7 +33,6 @@ export default function UploadDocumentsPage({ params }) {
         
         setUser(dbUser || user);
 
-        // Получаем заявку
         const { data: request, error } = await supabase
           .from('hire')
           .select('*')
@@ -44,7 +41,6 @@ export default function UploadDocumentsPage({ params }) {
 
         if (error) throw error;
 
-        // Проверяем, что заявка принадлежит пользователю
         if (request.user_id !== (dbUser?.id || user.id)) {
           toast.error('У вас нет доступа к этой заявке');
           router.push('/dashboard');
@@ -66,7 +62,6 @@ export default function UploadDocumentsPage({ params }) {
 
   const handleUploadComplete = async () => {
     try {
-      // Обновляем статус заявки
       const { error } = await supabase
         .from('hire')
         .update({ status: 'pending' })
@@ -84,7 +79,7 @@ export default function UploadDocumentsPage({ params }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-lg">Загрузка...</div>
       </div>
     );
@@ -92,18 +87,34 @@ export default function UploadDocumentsPage({ params }) {
 
   if (!request) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Заявка не найдена</div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="text-lg text-center px-4">Заявка не найдена</div>
       </div>
     );
   }
 
   return (
-    <div className="py-8 px-4">
-      <UploadDocumentsForm 
-        request={request} 
-        onUploadComplete={handleUploadComplete}
-      />
+    <div className="min-h-screen bg-background">
+      <header className="bg-secondary text-white py-4">
+        <div className="container">
+          <a href="/" className="logo">PLATFORM AI</a>
+        </div>
+      </header>
+
+      <main className="container py-6 sm:py-8">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 md:p-8">
+          <UploadDocumentsForm 
+            request={request} 
+            onUploadComplete={handleUploadComplete}
+          />
+        </div>
+      </main>
+
+      <footer className="bg-secondary text-white py-4 mt-auto">
+        <div className="container text-center">
+          <p className="text-sm">© 2023 PLATFORM AI. Все права защищены.</p>
+        </div>
+      </footer>
     </div>
   );
 } 

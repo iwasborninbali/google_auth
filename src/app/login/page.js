@@ -4,29 +4,17 @@ import Auth from '@/components/Auth'
 
 export default function LoginPage() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header>
-        <a href="/" className="logo">PLATFORM AI</a>
+    <div className="min-h-screen flex flex-col">
+      <header className="bg-secondary text-white py-4">
+        <div className="container">
+          <a href="/" className="logo">PLATFORM AI</a>
+        </div>
       </header>
 
-      <main style={{ 
-        flex: 1, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: 'var(--color-bg-light)'
-      }}>
-        <div style={{
-          backgroundColor: 'var(--color-white)',
-          padding: '3rem',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          textAlign: 'center',
-          maxWidth: '400px',
-          width: '90%'
-        }}>
-          <h1 style={{ marginBottom: '1.5rem' }}>Добро пожаловать</h1>
-          <p className="text-secondary" style={{ marginBottom: '2rem' }}>
+      <main className="flex-1 flex items-center justify-center bg-muted px-4 py-8">
+        <div className="bg-background p-6 sm:p-8 md:p-12 rounded-lg shadow-md w-full max-w-md mx-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">Добро пожаловать</h1>
+          <p className="text-secondary mb-8 text-center">
             Войдите в систему, чтобы получить доступ к платформе
           </p>
           
@@ -34,15 +22,9 @@ export default function LoginPage() {
         </div>
       </main>
 
-      <footer>
-        <div style={{ 
-          maxWidth: '800px', 
-          margin: '0 auto', 
-          padding: '0 2rem', 
-          display: 'flex', 
-          justifyContent: 'center'
-        }}>
-          <p style={{ fontSize: '0.875rem' }}>© 2023 PLATFORM AI. Все права защищены.</p>
+      <footer className="bg-secondary text-white py-4">
+        <div className="container text-center">
+          <p className="text-sm">© 2023 PLATFORM AI. Все права защищены.</p>
         </div>
       </footer>
     </div>

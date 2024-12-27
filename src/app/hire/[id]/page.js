@@ -43,7 +43,7 @@ export default function HireRequestPage({ params }) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
       </div>
     );
@@ -54,23 +54,39 @@ export default function HireRequestPage({ params }) {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6 flex justify-between items-center">
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2"
-          onClick={() => router.push('/dashboard')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Назад к списку заявок
-        </Button>
-      </div>
-      
-      <HireRequestDetails 
-        request={request}
-        showDeleteButton={true}
-        onRequestDeleted={() => router.push('/dashboard')}
-      />
+    <div className="min-h-screen bg-background">
+      <header className="bg-secondary text-white py-4">
+        <div className="container">
+          <a href="/" className="logo">PLATFORM AI</a>
+        </div>
+      </header>
+
+      <main className="container py-6 sm:py-8">
+        <div className="mb-4 sm:mb-6">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 text-sm sm:text-base"
+            onClick={() => router.push('/dashboard')}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Назад к списку заявок
+          </Button>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 md:p-8">
+          <HireRequestDetails 
+            request={request}
+            showDeleteButton={true}
+            onRequestDeleted={() => router.push('/dashboard')}
+          />
+        </div>
+      </main>
+
+      <footer className="bg-secondary text-white py-4 mt-auto">
+        <div className="container text-center">
+          <p className="text-sm">© 2023 PLATFORM AI. Все права защищены.</p>
+        </div>
+      </footer>
     </div>
   );
 } 
