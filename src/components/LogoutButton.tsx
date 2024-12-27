@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button'
 import { LogOut } from 'lucide-react'
 import { useState } from 'react'
 
+// Создаем единый экземпляр клиента
+const supabase = createClientComponentClient()
+
 export default function LogoutButton() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleLogout = async () => {
@@ -31,16 +33,9 @@ export default function LogoutButton() {
       }
 
       // Принудительно обновляем страницу и редиректим
-      router.push('/login')
-      router.refresh()
-      
-      // Даем время на обновление состояния
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 100)
+      window.location.href = '/login'
     } catch (error) {
       console.error('Error logging out:', error)
-    } finally {
       setIsLoggingOut(false)
     }
   }
