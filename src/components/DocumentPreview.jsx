@@ -7,6 +7,37 @@ import { FileIcon, ExternalLink, Eye, X } from 'lucide-react';
 import Image from 'next/image';
 import { createBrowserClient } from '@supabase/ssr';
 
+// Функция для транслитерации русского текста (копируем из DocumentUpload.jsx)
+function transliterate(text) {
+  if (!text) return '';
+  
+  const ru = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    ' ': '_', '-': '_', '.': '_'
+  };
+
+  return text.toLowerCase()
+    .split('')
+    .map(char => ru[char] || char)
+    .join('');
+}
+
+// Функция для очистки строки (копируем из DocumentUpload.jsx)
+function sanitizePath(str) {
+  if (!str) return '';
+  
+  const transliterated = transliterate(str);
+  return transliterated
+    .replace(/[^a-z0-9_]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    || 'file';
+}
+
 export default function DocumentPreview({ file, request }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
@@ -19,7 +50,26 @@ export default function DocumentPreview({ file, request }) {
   );
 
   const getFileUrl = async () => {
-    const path = `${request.user_id}/${request.id}/${file.name}`;
+    // Определяем тип документа из имени файла
+    let docType = 'unknown';
+    if (file.name.includes('passport')) docType = 'passport';
+    if (file.name.includes('snils')) docType = 'snils';
+    if (file.name.includes('inn')) docType = 'inn';
+    if (file.name.includes('bankDetails')) docType = 'bankDetails';
+    if (file.name.includes('workBook')) docType = 'workBookFile';
+
+    const pathParts = [
+      request.user_id,
+      request.id,
+      sanitizePath(request.company_name || 'company'),
+      sanitizePath(request.employee_name || 'employee'),
+      docType,
+      file.name
+    ];
+
+    const path = pathParts.join('/');
+    console.log('Getting file URL for path:', path);
+
     const { data } = supabase.storage
       .from('hire')
       .getPublicUrl(path);

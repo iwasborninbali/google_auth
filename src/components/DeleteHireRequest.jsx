@@ -15,20 +15,22 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
+  if (!request || request.status === 'draft') return null;
+
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      
+
       const { error } = await supabase
         .from('hire')
-        .update({ 
+        .update({
           status: 'deleted',
           deleted_at: new Date().toISOString()
         })
         .eq('id', request.id);
 
       if (error) throw error;
-      
+
       toast.success('Заявка перемещена в архив');
       setConfirmDelete(false);
       if (onRequestDeleted) {
@@ -42,11 +44,8 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
     }
   };
 
-  if (!request || request.status === 'draft') return null;
-
   return (
     <div className="relative inline-block">
-      {/* Иконка корзины */}
       {!confirmDelete && !isDeleting && (
         <Button
           variant="ghost"
@@ -58,7 +57,6 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
         </Button>
       )}
 
-      {/* Кнопки подтверждения */}
       {confirmDelete && (
         <div className="absolute right-0 top-full mt-2 flex items-center gap-2 bg-white rounded-lg shadow-lg p-2 z-50">
           <Button
@@ -81,7 +79,6 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
         </div>
       )}
 
-      {/* Индикатор процесса удаления */}
       {isDeleting && (
         <span className="ml-2 text-sm text-gray-500">Удаляем...</span>
       )}
