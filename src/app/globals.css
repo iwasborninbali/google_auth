@@ -99,8 +99,16 @@
 }
 
 @layer components {
+  .header-logo {
+    @apply h-8 w-auto mr-3;
+  }
+
+  .header-content {
+    @apply flex items-center;
+  }
+
   .logo {
-    @apply text-primary font-bold text-xl no-underline ml-4;
+    @apply text-primary font-bold text-xl no-underline ml-2;
   }
 
   .btn-primary {

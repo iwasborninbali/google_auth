@@ -5,6 +5,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import UploadDocumentsForm from '@/components/UploadDocumentsForm';
+import Image from 'next/image';
 
 export default function UploadDocumentsPage({ params }) {
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,16 @@ export default function UploadDocumentsPage({ params }) {
     <div className="min-h-screen bg-background">
       <header className="bg-secondary text-white py-4">
         <div className="container">
-          <a href="/" className="logo">PLATFORM AI</a>
+          <div className="header-content">
+            <Image
+              src="/logo.png"
+              alt="Platform AI Logo"
+              width={32}
+              height={32}
+              className="header-logo"
+            />
+            <a href="/" className="logo">PLATFORM AI</a>
+          </div>
         </div>
       </header>
 

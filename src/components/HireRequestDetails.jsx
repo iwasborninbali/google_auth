@@ -3,9 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Button } from "@/components/ui/button";
-import { FileIcon, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
-import DocumentPreview from './DocumentPreview';
 import DeleteHireRequest from './DeleteHireRequest';
 
 const statusTranslations = {
@@ -35,37 +33,6 @@ const workBookTranslations = {
 };
 
 export default function HireRequestDetails({ request, showDeleteButton = false, onRequestDeleted }) {
-  const [loading, setLoading] = useState(true);
-  const [files, setFiles] = useState([]);
-  
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-
-  useEffect(() => {
-    if (request?.id) {
-      loadFiles();
-    }
-  }, [request]);
-
-  const loadFiles = async () => {
-    try {
-      setLoading(true);
-      const { data: files, error } = await supabase.storage
-        .from('hire')
-        .list(`${request.user_id}/${request.id}`);
-
-      if (error) throw error;
-      setFiles(files || []);
-    } catch (error) {
-      console.error('Error loading files:', error);
-      toast.error('Ошибка при загрузке файлов');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!request) return null;
 
   return (
@@ -118,30 +85,6 @@ export default function HireRequestDetails({ request, showDeleteButton = false, 
               minute: '2-digit'
             })}</p>
           </div>
-        </div>
-
-        {/* Документы */}
-        <div>
-          <h3 className="font-semibold mb-4">Документы</h3>
-          {loading ? (
-            <div className="text-center py-4">
-              <p className="text-gray-500">Загрузка документов...</p>
-            </div>
-          ) : files.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-500">Документы не найдены</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {files.map((file) => (
-                <DocumentPreview
-                  key={file.name}
-                  file={file}
-                  request={request}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

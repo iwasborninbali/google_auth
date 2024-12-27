@@ -1,13 +1,23 @@
 'use client'
 
 import Auth from '@/components/Auth'
+import Image from 'next/image'
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="bg-secondary text-white py-4">
         <div className="container">
-          <a href="/" className="logo">PLATFORM AI</a>
+          <div className="header-content">
+            <Image
+              src="/logo.png"
+              alt="Platform AI Logo"
+              width={32}
+              height={32}
+              className="header-logo"
+            />
+            <a href="/" className="logo">PLATFORM AI</a>
+          </div>
         </div>
       </header>
 

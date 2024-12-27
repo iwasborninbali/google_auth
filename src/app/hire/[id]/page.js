@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import HireRequestDetails from '@/components/HireRequestDetails';
+import Image from 'next/image';
 
 export default function HireRequestPage({ params }) {
   const [request, setRequest] = useState(null);
@@ -57,7 +58,16 @@ export default function HireRequestPage({ params }) {
     <div className="min-h-screen bg-background">
       <header className="bg-secondary text-white py-4">
         <div className="container">
-          <a href="/" className="logo">PLATFORM AI</a>
+          <div className="header-content">
+            <Image
+              src="/logo.png"
+              alt="Platform AI Logo"
+              width={32}
+              height={32}
+              className="header-logo"
+            />
+            <a href="/" className="logo">PLATFORM AI</a>
+          </div>
         </div>
       </header>
 
