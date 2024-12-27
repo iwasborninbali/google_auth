@@ -39,10 +39,23 @@ export default function MultiStepForm() {
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      console.log('Current user:', user)
+      
+      // Проверяем пользователя в таблице users
+      const { data: dbUser, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', user.email)
+        .single()
+      
+      console.log('DB user:', dbUser)
+      if (dbError) console.error('DB Error:', dbError)
+      
+      // Используем ID из таблицы users
+      setUser(dbUser || user)
     }
     getUser()
-  }, [supabase.auth])
+  }, [supabase])
 
   function updateFields(fields) {
     setData(prev => ({ ...prev, ...fields }))
@@ -98,6 +111,8 @@ export default function MultiStepForm() {
     if (currentStep === steps.length - 1) {
       try {
         setLoading(true)
+        console.log('Submitting with user:', user)
+        
         const { error } = await supabase
           .from('hire')
           .insert({
@@ -109,12 +124,15 @@ export default function MultiStepForm() {
             work_book_type: data.workBook
           })
 
-        if (error) throw error
+        if (error) {
+          console.error('Submission error:', error)
+          throw error
+        }
 
         toast.success('Заявка успешно отправлена')
-        router.push('/dashboard') // или куда вам нужно после успешной отправки
+        router.push('/dashboard')
       } catch (error) {
-        console.error('Error:', error)
+        console.error('Error details:', error)
         toast.error('Ошибка при отправке формы')
       } finally {
         setLoading(false)
