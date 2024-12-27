@@ -5,19 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createBrowserClient } from '@supabase/ssr';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export default function DeleteHireRequest({ request, onRequestDeleted }) {
-  const [showDialog, setShowDialog] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const supabase = createBrowserClient(
@@ -40,7 +30,7 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
       if (error) throw error;
       
       toast.success('Заявка перемещена в архив');
-      handleClose();
+      setConfirmDelete(false);
       if (onRequestDeleted) {
         onRequestDeleted();
       }
@@ -52,49 +42,49 @@ export default function DeleteHireRequest({ request, onRequestDeleted }) {
     }
   };
 
-  const handleClose = () => {
-    setShowDialog(false);
-  };
-
   if (!request || request.status === 'draft') return null;
 
   return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="text-red-500 hover:text-red-700 hover:bg-red-100"
-        onClick={() => setShowDialog(true)}
-      >
-        <Trash2 className="h-5 w-5" />
-      </Button>
+    <div className="relative inline-block">
+      {/* Иконка корзины */}
+      {!confirmDelete && !isDeleting && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-red-500 hover:text-red-700 hover:bg-red-100"
+          onClick={() => setConfirmDelete(true)}
+        >
+          <Trash2 className="h-5 w-5" />
+        </Button>
+      )}
 
-      <AlertDialog open={showDialog} onOpenChange={handleClose}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Архивация заявки</AlertDialogTitle>
-            <AlertDialogDescription>
-              Вы уверены, что хотите архивировать заявку для компании "{request.company_name}"?
-              Заявка будет перемещена в архив.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              disabled={isDeleting}
-              onClick={handleClose}
-            >
-              Отмена
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-red-500 hover:bg-red-600 text-white"
-            >
-              {isDeleting ? 'Архивация...' : 'Архивировать'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      {/* Кнопки подтверждения */}
+      {confirmDelete && (
+        <div className="absolute right-0 top-full mt-2 flex items-center gap-2 bg-white rounded-lg shadow-lg p-2 z-50">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="text-sm"
+          >
+            {isDeleting ? 'Удаление...' : 'Удалить?'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmDelete(false)}
+            className="text-sm"
+          >
+            Отмена
+          </Button>
+        </div>
+      )}
+
+      {/* Индикатор процесса удаления */}
+      {isDeleting && (
+        <span className="ml-2 text-sm text-gray-500">Удаляем...</span>
+      )}
+    </div>
   );
 } 
