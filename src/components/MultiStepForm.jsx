@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ProgressBar } from './ProgressBar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import DocumentUpload from './DocumentUpload'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -28,7 +28,10 @@ export default function MultiStepForm() {
   const [data, setData] = useState(INITIAL_DATA)
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
   const router = useRouter()
 
   // Get current user session
