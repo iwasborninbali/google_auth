@@ -28,6 +28,7 @@ export default function MultiStepForm() {
   const [data, setData] = useState(INITIAL_DATA)
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [hireId, setHireId] = useState(null)
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -61,6 +62,42 @@ export default function MultiStepForm() {
     setData(prev => ({ ...prev, ...fields }))
   }
 
+  // Создаем запись в hire перед загрузкой файлов
+  const createHireRecord = async () => {
+    const { data: hire, error } = await supabase
+      .from('hire')
+      .insert({
+        user_id: user?.id,
+        company_name: data.companyName,
+        employee_name: data.employeeName,
+        position: data.position,
+        employment_type: data.employmentType,
+        work_book_type: data.workBook,
+        status: 'pending'
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return hire
+  }
+
+  // Обновляем запись с URL файлов
+  const updateHireRecord = async (fileUrls) => {
+    const { error } = await supabase
+      .from('hire')
+      .update({
+        passport_url: fileUrls.passport,
+        snils_url: fileUrls.snils,
+        inn_url: fileUrls.inn,
+        bank_details_url: fileUrls.bankDetails,
+        work_book_url: fileUrls.workBookFile
+      })
+      .eq('id', hireId)
+
+    if (error) throw error
+  }
+
   const steps = useMemo(() => [
     <CompanyStep key="company" {...data} updateFields={updateFields} />,
     <EmployeeNameStep key="employeeName" {...data} updateFields={updateFields} />,
@@ -69,13 +106,11 @@ export default function MultiStepForm() {
     <WorkBookStep key="workBook" {...data} updateFields={updateFields} />,
     <DocumentUpload 
       key="documents"
-      onUpload={(files) => {
+      formData={data}
+      hireId={hireId}
+      onUpload={(docType, fileUrl) => {
         updateFields({
-          passport: files.passport,
-          snils: files.snils,
-          inn: files.inn,
-          bankDetails: files.bankDetails,
-          ...(data.workBook !== 'none' ? { workBookFile: files.workBook } : {})
+          [docType]: fileUrl
         })
       }}
       documents={[
@@ -84,13 +119,13 @@ export default function MultiStepForm() {
         { type: 'inn', title: 'ИНН', description: 'Загрузите скан или фото ИНН' },
         { type: 'bankDetails', title: 'Банковские реквизиты', description: 'Загрузите файл с банковскими реквизитами' },
         ...(data.workBook !== 'none' ? [{
-          type: 'workBook',
+          type: 'workBookFile',
           title: 'Трудовая книжка',
           description: `Загрузите скан ${data.workBook === 'paper' ? 'бумажной' : 'электронной'} трудовой книжки`
         }] : [])
       ]}
     />
-  ], [data, updateFields])
+  ], [data, updateFields, hireId])
 
   function next() {
     setCurrentStep(i => {
@@ -108,31 +143,26 @@ export default function MultiStepForm() {
 
   async function onSubmit(e) {
     e.preventDefault()
-    if (currentStep === steps.length - 1) {
+    if (currentStep === steps.length - 2) { // Перед шагом загрузки файлов
       try {
         setLoading(true)
-        console.log('Submitting with user:', user)
-        
-        const { error } = await supabase
-          .from('hire')
-          .insert({
-            user_id: user?.id,
-            company_name: data.companyName,
-            employee_name: data.employeeName,
-            position: data.position,
-            employment_type: data.employmentType,
-            work_book_type: data.workBook
-          })
-
-        if (error) {
-          console.error('Submission error:', error)
-          throw error
-        }
-
+        const hire = await createHireRecord()
+        setHireId(hire.id)
+        next()
+      } catch (error) {
+        console.error('Error creating hire record:', error)
+        toast.error('Ошибка при создании заявки')
+      } finally {
+        setLoading(false)
+      }
+    } else if (currentStep === steps.length - 1) {
+      try {
+        setLoading(true)
+        await updateHireRecord(data)
         toast.success('Заявка успешно отправлена')
         router.push('/dashboard')
       } catch (error) {
-        console.error('Error details:', error)
+        console.error('Error updating hire record:', error)
         toast.error('Ошибка при отправке формы')
       } finally {
         setLoading(false)
