@@ -1,36 +1,28 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { SideMenu } from "@/components/SideMenu"
+import LogoutButton from '@/components/LogoutButton'
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-})
+const inter = Inter({ subsets: ["latin"] })
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-})
-
-export const metadata = {
-  title: "Best Consulting system",
-  description: "Система управления заявками на трудоустройство",
-}
-
-export default async function RootLayout({ children }) {
-  const supabase = createServerComponentClient({ cookies })
-  const { data: { session } } = await supabase.auth.getSession()
-
+export default function RootLayout({ children }) {
   return (
     <html lang="ru">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {session && <SideMenu />}
-        <div className="fixed top-0 right-0 p-2 text-xs">
-          Session: {session ? 'Active' : 'None'}
+      <body className={inter.className}>
+        <SideMenu />
+        <div className="min-h-screen flex flex-col">
+          <header className="border-b">
+            <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+              <nav>
+                {/* Существующая навигация... */}
+              </nav>
+              <LogoutButton />
+            </div>
+          </header>
+          <main className="flex-1">
+            {children}
+          </main>
         </div>
-        {children}
       </body>
     </html>
   )

@@ -2,34 +2,55 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  const response = NextResponse.next()
-  const supabase = createMiddlewareClient({ req: request, res: response })
-  const { data: { session } } = await supabase.auth.getSession()
+// Публичные маршруты, которые не требуют авторизации
+const publicRoutes = [
+  '/login',
+  '/auth/callback',
+  '/auth-error',
+  '/api/auth',  // Для Supabase Auth endpoints
+  '/_next',     // Для Next.js статических ресурсов
+  '/static',    // Для статических файлов
+]
 
-  // Allow access to login page
-  if (request.nextUrl.pathname === '/login') {
-    // If user is already logged in and tries to access login page, redirect to dashboard
-    if (session) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-    return response
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+
+  // Проверяем, является ли текущий путь публичным
+  const isPublicPath = publicRoutes.some(route => 
+    req.nextUrl.pathname.startsWith(route)
+  )
+
+  if (isPublicPath) {
+    return res
   }
 
-  // Protect all other routes
+  // Получаем сессию
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Если нет сессии, редиректим на логин
   if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const redirectUrl = new URL('/login', req.url)
+    // Сохраняем URL, с которого пришли, чтобы вернуться после логина
+    redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Special case for root route
-  if (request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  return response
+  return res
 }
 
-// Configure middleware to run on all routes
+// Указываем, для каких путей применять middleware
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)']
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public folder)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
+  ],
 } 

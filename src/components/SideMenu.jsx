@@ -7,21 +7,33 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function SideMenu() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsAuthenticated(!!session)
+    }
+    checkAuth()
+  }, [supabase.auth])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.refresh()
   }
 
+  if (!isAuthenticated) return null
+
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="fixed left-4 top-4">
+        <Button variant="ghost" size="icon" className="fixed left-4 top-4 z-50">
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
