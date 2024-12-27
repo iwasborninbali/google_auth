@@ -3638,62 +3638,6 @@ export function ProgressBar({
 
 ```
 
-### File: ./src/middleware.js
-```
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-
-export async function middleware(request) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get(name) {
-          return request.cookies.get(name)?.value
-        },
-        set(name, value, options) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name, options) {
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
-    }
-  )
-
-  await supabase.auth.getSession()
-
-  return response
-}
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
-  ],
-} ```
-
 ### File: ./src/lib/supabase.js
 ```
 import { createBrowserClient } from '@supabase/ssr'
@@ -3736,32 +3680,51 @@ const publicRoutes = [
 ]
 
 export async function middleware(req: NextRequest) {
+  // Создаем response сразу
   const res = NextResponse.next()
+  
+  // Инициализируем Supabase клиент
   const supabase = createMiddlewareClient({ req, res })
 
-  // Проверяем, является ли текущий путь публичным
-  const isPublicPath = publicRoutes.some(route => 
-    req.nextUrl.pathname.startsWith(route)
-  )
+  try {
+    // Проверяем корневой путь
+    if (req.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
 
-  if (isPublicPath) {
+    // Проверяем, является ли текущий путь публичным
+    const isPublicPath = publicRoutes.some(route => 
+      req.nextUrl.pathname.startsWith(route)
+    )
+
+    if (isPublicPath) {
+      return res
+    }
+
+    // Получаем сессию
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    // Если пользователь на странице логина и уже авторизован
+    if (req.nextUrl.pathname === '/login' && session) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
+    // Если нет сессии и путь не публичный, редиректим на логин
+    if (!session) {
+      const redirectUrl = new URL('/login', req.url)
+      // Сохраняем URL, с которого пришли, чтобы вернуться после логина
+      redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+
     return res
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // В случае ошибки редиректим на страницу логина
+    return NextResponse.redirect(new URL('/login', req.url))
   }
-
-  // Получаем сессию
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // Если нет сессии, редиректим на логин
-  if (!session) {
-    const redirectUrl = new URL('/login', req.url)
-    // Сохраняем URL, с которого пришли, чтобы вернуться после логина
-    redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  return res
 }
 
 // Указываем, для каких путей применять middleware
