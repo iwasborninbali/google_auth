@@ -69,6 +69,15 @@ export default function DocumentPreview({ file, request }) {
 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-3xl">
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsPreviewOpen(false)}
+            >
+              Закрыть
+            </Button>
+          </div>
           {fileUrl && (
             isImage ? (
               <div className="relative w-full h-[600px]">

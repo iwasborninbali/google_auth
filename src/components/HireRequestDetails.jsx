@@ -213,7 +213,12 @@ export default function HireRequestDetails({ request, showDeleteButton = false, 
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Отмена
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
