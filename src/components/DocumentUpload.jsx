@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { createBrowserClient } from '@supabase/ssr'
 import { toast } from 'sonner'
@@ -39,13 +39,18 @@ function sanitizePath(str) {
     || 'file'; // если строка пустая, используем 'file'
 }
 
-export default function DocumentUpload({ documents, onUpload, formData, hireId }) {
+export default function DocumentUpload({ documents, onUpload, formData, hireId, existingFiles = {} }) {
   const [uploading, setUploading] = useState({})
-  const [uploadedFiles, setUploadedFiles] = useState({})
+  const [uploadedFiles, setUploadedFiles] = useState(existingFiles)
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
+
+  // Инициализируем состояние uploadedFiles с existingFiles при монтировании
+  useEffect(() => {
+    setUploadedFiles(existingFiles);
+  }, [existingFiles]);
 
   const uploadFile = async (file, docType) => {
     try {
@@ -154,7 +159,12 @@ export default function DocumentUpload({ documents, onUpload, formData, hireId }
 
         return (
           <div key={type} className="p-4 border rounded-lg">
-            <h3 className="font-semibold mb-2">{title}</h3>
+            <h3 className="font-semibold mb-2">
+              {title}
+              {uploadedFile && (
+                <span className="ml-2 text-sm text-green-600">✓ Загружено</span>
+              )}
+            </h3>
             <p className="text-sm text-gray-500 mb-4">{description}</p>
             
             {uploadedFile ? (
@@ -164,7 +174,9 @@ export default function DocumentUpload({ documents, onUpload, formData, hireId }
                     <Check className="w-5 h-5 text-green-500" />
                     <div>
                       <p className="text-sm font-medium">{uploadedFile.name}</p>
-                      <p className="text-xs text-gray-500">Загружено: {uploadedFile.timestamp}</p>
+                      {uploadedFile.timestamp && (
+                        <p className="text-xs text-gray-500">Загружено: {uploadedFile.timestamp}</p>
+                      )}
                     </div>
                   </div>
                   <Button

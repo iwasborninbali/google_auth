@@ -5,19 +5,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { useRouter } from 'next/navigation'
 import HireRequestDetails from './HireRequestDetails'
+import { createBrowserClient } from '@supabase/ssr'
+import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Trash2 } from 'lucide-react'
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-green-100 text-green-800',
   rejected: 'bg-red-100 text-red-800',
-  draft: 'bg-gray-100 text-gray-800'
+  draft: 'bg-gray-100 text-gray-800',
+  deleted: 'bg-red-100 text-red-800'
 }
 
 const statusTranslations = {
   pending: 'На рассмотрении',
   approved: 'Одобрено',
   rejected: 'Отклонено',
-  draft: 'Черновик'
+  draft: 'Черновик',
+  deleted: 'Удалено'
 }
 
 const employmentTypeTranslations = {
@@ -34,15 +49,50 @@ const workBookTranslations = {
 
 export default function HireRequestsGrid({ requests = [] }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [requestToDelete, setRequestToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
   const handleRequestClick = (request) => {
     if (request.status === 'draft') {
-      // Если черновик - перенаправляем на страницу загрузки документов
       router.push(`/hire/upload/${request.id}`);
     } else {
-      // Иначе показываем детали
       setSelectedRequest(request);
+    }
+  };
+
+  const handleDeleteClick = async (e, request) => {
+    e.stopPropagation(); // Предотвращаем всплытие события клика
+    setRequestToDelete(request);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsDeleting(true);
+      
+      // Обновляем статус заявки на deleted
+      const { error } = await supabase
+        .from('hire')
+        .update({ status: 'deleted' })
+        .eq('id', requestToDelete.id);
+
+      if (error) throw error;
+
+      // Обновляем UI, удаляя заявку из списка
+      requests = requests.filter(r => r.id !== requestToDelete.id);
+      
+      toast.success('Заявка успешно удалена');
+      router.refresh(); // Обновляем страницу для отображения изменений
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      toast.error('Ошибка при удалении заявки');
+    } finally {
+      setIsDeleting(false);
+      setRequestToDelete(null);
     }
   };
 
@@ -65,13 +115,23 @@ export default function HireRequestsGrid({ requests = [] }) {
             }`}
             onClick={() => handleRequestClick(request)}
           >
-            <CardHeader>
-              <CardTitle className="text-xl">{request.company_name}</CardTitle>
-              <CardDescription>
-                <span className={`inline-block px-2 py-1 rounded-full text-sm ${statusColors[request.status]}`}>
-                  {statusTranslations[request.status]}
-                </span>
-              </CardDescription>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+              <div>
+                <CardTitle className="text-xl">{request.company_name}</CardTitle>
+                <CardDescription>
+                  <span className={`inline-block px-2 py-1 rounded-full text-sm ${statusColors[request.status]}`}>
+                    {statusTranslations[request.status]}
+                  </span>
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                onClick={(e) => handleDeleteClick(e, request)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -107,6 +167,28 @@ export default function HireRequestsGrid({ requests = [] }) {
         isOpen={!!selectedRequest}
         onClose={() => setSelectedRequest(null)}
       />
+
+      <AlertDialog open={!!requestToDelete} onOpenChange={() => !isDeleting && setRequestToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удаление заявки</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы уверены, что хотите удалить заявку для компании "{requestToDelete?.company_name}"?
+              Это действие нельзя будет отменить.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              {isDeleting ? 'Удаление...' : 'Удалить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 } 

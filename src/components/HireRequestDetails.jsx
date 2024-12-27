@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileIcon, ExternalLink } from 'lucide-react';
 
@@ -95,6 +95,9 @@ export default function HireRequestDetails({ hireId, isOpen, onClose }) {
               {statusTranslations[request.status]}
             </span>
           </DialogTitle>
+          <DialogDescription>
+            Подробная информация о заявке на трудоустройство и загруженных документах
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-6 space-y-6">
