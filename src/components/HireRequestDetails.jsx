@@ -88,19 +88,22 @@ export default function HireRequestDetails({ request, showDeleteButton = false, 
       
       const { error } = await supabase
         .from('hire')
-        .update({ status: 'deleted' })
+        .update({ 
+          status: 'deleted',
+          deleted_at: new Date().toISOString()
+        })
         .eq('id', request.id);
 
       if (error) throw error;
       
-      toast.success('Заявка успешно удалена');
+      toast.success('Заявка перемещена в архив');
       setShowDeleteDialog(false);
       if (onRequestDeleted) {
         onRequestDeleted();
       }
     } catch (error) {
-      console.error('Error deleting request:', error);
-      toast.error('Ошибка при удалении заявки');
+      console.error('Error archiving request:', error);
+      toast.error('Ошибка при архивации заявки');
     } finally {
       setIsDeleting(false);
     }
@@ -118,7 +121,7 @@ export default function HireRequestDetails({ request, showDeleteButton = false, 
               {statusTranslations[request.status]}
             </span>
           </div>
-          {showDeleteButton && request.status !== 'draft' && (
+          {showDeleteButton && (
             <Button
               variant="ghost"
               size="icon"
@@ -203,10 +206,10 @@ export default function HireRequestDetails({ request, showDeleteButton = false, 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удаление заявки</AlertDialogTitle>
+            <AlertDialogTitle>Архивация заявки</AlertDialogTitle>
             <AlertDialogDescription>
-              Вы уверены, что хотите удалить заявку для компании "{request.company_name}"?
-              Это действие нельзя будет отменить.
+              Вы уверены, что хотите архивировать заявку для компании "{request.company_name}"?
+              Заявка будет перемещена в архив.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -216,7 +219,7 @@ export default function HireRequestDetails({ request, showDeleteButton = false, 
               disabled={isDeleting}
               className="bg-red-500 hover:bg-red-600 text-white"
             >
-              {isDeleting ? 'Удаление...' : 'Удалить'}
+              {isDeleting ? 'Архивация...' : 'Архивировать'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

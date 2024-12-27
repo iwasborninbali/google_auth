@@ -19,7 +19,7 @@ export default function DocumentPreview({ file, request }) {
   );
 
   const getFileUrl = async () => {
-    const path = `${request.user_id}/${request.id}/${request.company_name}/${request.employee_name}/${file.metadata?.documentType || 'unknown'}/${file.name}`;
+    const path = `${request.user_id}/${request.id}/${file.name}`;
     const { data } = supabase.storage
       .from('hire')
       .getPublicUrl(path);
