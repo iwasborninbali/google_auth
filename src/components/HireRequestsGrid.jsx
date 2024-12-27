@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useRouter } from 'next/navigation'
@@ -48,6 +48,7 @@ const workBookTranslations = {
 }
 
 export default function HireRequestsGrid({ requests = [] }) {
+  const [localRequests, setLocalRequests] = useState(requests);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [requestToDelete, setRequestToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,25 +58,33 @@ export default function HireRequestsGrid({ requests = [] }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
+  // Синхронизируем localRequests с пропсами при их изменении
+  useEffect(() => {
+    setLocalRequests(requests);
+  }, [requests]);
+
   const handleRequestClick = (request) => {
+    console.log('handleRequestClick called with request:', request);
     if (request.status === 'draft') {
       router.push(`/hire/upload/${request.id}`);
     } else {
+      console.log('Setting selectedRequest:', request);
       setSelectedRequest(request);
     }
   };
 
   const handleDeleteClick = async (e, request) => {
-    e.preventDefault(); // Предотвращаем всплытие события клика
-    e.stopPropagation(); // Предотвращаем всплытие события клика
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('handleDeleteClick called with request:', request);
     setRequestToDelete(request);
   };
 
   const handleDeleteConfirm = async () => {
     try {
       setIsDeleting(true);
-      
-      // Обновляем статус заявки на deleted
+      console.log('Deleting request:', requestToDelete);
+
       const { error } = await supabase
         .from('hire')
         .update({ status: 'deleted' })
@@ -83,11 +92,10 @@ export default function HireRequestsGrid({ requests = [] }) {
 
       if (error) throw error;
 
-      // Обновляем UI, удаляя заявку из списка
-      requests = requests.filter(r => r.id !== requestToDelete.id);
+      // Обновляем локальный стейт
+      setLocalRequests((prev) => prev.filter(r => r.id !== requestToDelete.id));
       
       toast.success('Заявка успешно удалена');
-      router.refresh(); // Обновляем страницу для отображения изменений
     } catch (error) {
       console.error('Error deleting request:', error);
       toast.error('Ошибка при удалении заявки');
@@ -97,7 +105,7 @@ export default function HireRequestsGrid({ requests = [] }) {
     }
   };
 
-  if (requests.length === 0) {
+  if (localRequests.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">У вас пока нет заявок на трудоустройство</p>
@@ -108,7 +116,7 @@ export default function HireRequestsGrid({ requests = [] }) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {requests.map((request) => (
+        {localRequests.map((request) => (
           <Card 
             key={request.id} 
             className={`shadow-lg cursor-pointer transition-transform hover:scale-[1.02] ${
@@ -165,6 +173,7 @@ export default function HireRequestsGrid({ requests = [] }) {
         ))}
       </div>
 
+      {console.log('Rendering HireRequestDetails with:', { selectedRequest, isOpen: !!selectedRequest })}
       <HireRequestDetails
         request={selectedRequest}
         isOpen={!!selectedRequest}
